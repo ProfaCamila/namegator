@@ -1,11 +1,22 @@
 const { ApolloServer } = require("apollo-server");
 
 const typeDefs = `
+    
     type Item {
         id: Int
         type: String
         description: String
     }
+
+    type Domain {
+        name: String
+        checkout: String
+    }
+
+    type Query {
+        items(type: String):[Item]
+    }
+
     type Query {
         prefixes: [Item]
         sufixes: [Item]
@@ -17,6 +28,7 @@ const typeDefs = `
     type Mutation {
         saveItem(item: ItemInput): Item
         deleteItem(id: Int): Boolean
+        generateDomains: [Domain]
     }
 
 `;
@@ -53,6 +65,22 @@ const resolvers = {
             if (!item) return false;
             items.splice(items.indexOf(item), 1);
             return true;
+        },
+        generateDomains() {
+            const domains = [];
+			console.log("Gerando domínios no servidor...");
+			for (const prefix of items.filter(item => item.type === "prefix")) {
+				for (const sufix of items.filter(item => item.type === "sufix")) {
+					const name = prefix.description + sufix.description;
+					const url = name.toLowerCase();
+					const checkout = "https://cart.hostgator.com.br/?pid=d&sld=" + url + "&tld=.com.br&domainCycle=2";
+					domains.push({
+						name,
+						checkout
+					});
+				}
+			}
+            return domains;
         }
     }
 };

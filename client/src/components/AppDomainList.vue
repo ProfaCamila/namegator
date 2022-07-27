@@ -57,7 +57,8 @@ export default {
 			items: {
 				prefix: [],
 				sufix: []
-			}
+			},
+			domains: []
 		};
 	},
 	methods: {
@@ -88,6 +89,7 @@ export default {
 				const query = response.data;
 				const newPrefix = query.data.newPrefix;
 				this.items.prefix.push(newPrefix);
+				this.generateDomains();
 			});
 		},
 		addSufix(sufix) {
@@ -116,6 +118,7 @@ export default {
 				const query = response.data;
 				const newSufix = query.data.newSufix;
 				this.items.sufix.push(newSufix);
+				this.generateDomains();
 			});
 		},
 		removeSufix(sufix) {
@@ -134,7 +137,11 @@ export default {
 					}
 				}
 			}).then(() => {
-				this.getSufixes();
+				Promise.all([
+					this.getSufixes()
+				]).then(() => {
+					this.generateDomains();
+				});
 			});
 		},
 		removePrefix(prefix) {
@@ -153,11 +160,15 @@ export default {
 					}
 				}
 			}).then(() => {
-				this.getPrefixes();
+				Promise.all([
+					this.getPrefixes()
+				]).then(() => {
+					this.generateDomains();
+				});
 			});
 		},
 		getPrefixes() {
-			axios({
+			return axios({
 				url: "http://localhost:4000",
 				method: "post",
 				data: {
@@ -178,7 +189,7 @@ export default {
 			});
 		},
 		getSufixes() {
-			axios({
+			return axios({
 				url: "http://localhost:4000",
 				method: "post",
 				data: {
@@ -197,29 +208,31 @@ export default {
 				//this.prefixes = query.data.prefixes.map(prefix => prefix.description);
 				this.items.sufix = query.data.sufixes;
 			});
-		}
-	},
-	computed: {
-		domains() {
-			const domains = [];
+		},
+		generateDomains() {
+			this.domains = [];
 			console.log("Gerando domínios...");
 			for (const prefix of this.items.prefix) {
 				for (const sufix of this.items.sufix) {
 					const name = prefix.description + sufix.description;
 					const url = name.toLowerCase();
 					const checkout = "https://cart.hostgator.com.br/?pid=d&sld=" + url + "&tld=.com.br&domainCycle=2";
-					domains.push({
+					this.domains.push({
 						name,
 						checkout
 					});
 				}
 			}
-			return domains;
 		}
 	},
+
 	created() {
-		this.getPrefixes();
-		this.getSufixes();
+		Promise.all([
+			this.getPrefixes(), //As chamadas dessses métodos é realizada de forma assíncrona! Não respeita a ordem das chamadas
+			this.getSufixes()
+		]).then(() => {
+			this.generateDomains(); //Usando promisses, os métodos definidos em 'then' serão executados após os métodos de promisses all
+		});
 	}
 };
 </script>
