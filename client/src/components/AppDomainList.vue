@@ -21,10 +21,13 @@
                 <ul class="list-group">
                     <li class="list-group-item" v-for="domain in domains" v-bind:key="domain.name">
                         <div class="row">
-                            <div class="col-md">
-                                {{ domain.name }}
+                            <div class="col-md-6">
+                                {{ domain.name }}                            
                             </div>
-                            <div class="col-md text-right">
+                            <div class="col-md-3">
+                                <span>{{ (domain.available) ? "Disponível" : "Não Disponível" }}</span>                          
+                            </div>
+                            <div class="col-md-3 text-right">
                                 <a class="btn btn-info" v-bind:href="domain.checkout" target="_blank"><span
                                         class="fa fa-shopping-cart"></span></a>
                             </div>
@@ -57,7 +60,8 @@ export default {
 			items: {
 				prefix: [],
 				sufix: []
-			}
+			},
+			domains: []
 		};
 	},
 	methods: {
@@ -88,6 +92,7 @@ export default {
 				const query = response.data;
 				const newPrefix = query.data.newPrefix;
 				this.items.prefix.push(newPrefix);
+				this.generateDomains();
 			});
 		},
 		addSufix(sufix) {
@@ -116,6 +121,7 @@ export default {
 				const query = response.data;
 				const newSufix = query.data.newSufix;
 				this.items.sufix.push(newSufix);
+				this.generateDomains();
 			});
 		},
 		removeSufix(sufix) {
@@ -134,7 +140,11 @@ export default {
 					}
 				}
 			}).then(() => {
-				this.getSufixes();
+				Promise.all([
+					this.getSufixes()
+				]).then(() => {
+					this.generateDomains();
+				});
 			});
 		},
 		removePrefix(prefix) {
@@ -153,11 +163,15 @@ export default {
 					}
 				}
 			}).then(() => {
-				this.getPrefixes();
+				Promise.all([
+					this.getPrefixes()
+				]).then(() => {
+					this.generateDomains();
+				});
 			});
 		},
 		getPrefixes() {
-			axios({
+			return axios({
 				url: "http://localhost:4000",
 				method: "post",
 				data: {
@@ -178,7 +192,7 @@ export default {
 			});
 		},
 		getSufixes() {
-			axios({
+			return axios({
 				url: "http://localhost:4000",
 				method: "post",
 				data: {
@@ -197,29 +211,36 @@ export default {
 				//this.prefixes = query.data.prefixes.map(prefix => prefix.description);
 				this.items.sufix = query.data.sufixes;
 			});
-		}
-	},
-	computed: {
-		domains() {
-			const domains = [];
-			console.log("Gerando domínios...");
-			for (const prefix of this.items.prefix) {
-				for (const sufix of this.items.sufix) {
-					const name = prefix.description + sufix.description;
-					const url = name.toLowerCase();
-					const checkout = "https://cart.hostgator.com.br/?pid=d&sld=" + url + "&tld=.com.br&domainCycle=2";
-					domains.push({
-						name,
-						checkout
-					});
+		},
+		generateDomains() {
+			axios({
+				url: "http://localhost:4000",
+				method: "post",
+				data: {
+					query: `
+                        mutation {
+                            domains: generateDomains {
+                                name
+                                checkout
+                                available
+                            }
+                        }
+                    `
 				}
-			}
-			return domains;
+			}).then((response) => {
+				const query = response.data;
+				this.domains = query.data.domains;
+			});
 		}
 	},
+
 	created() {
-		this.getPrefixes();
-		this.getSufixes();
+		Promise.all([
+			this.getPrefixes(), //As chamadas dessses métodos é realizada de forma assíncrona! Não respeita a ordem das chamadas
+			this.getSufixes()
+		]).then(() => {
+			this.generateDomains(); //Usando promisses, os métodos definidos em 'then' serão executados após os métodos de promisses all
+		});
 	}
 };
 </script>
