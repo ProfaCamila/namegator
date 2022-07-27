@@ -10,6 +10,14 @@ const typeDefs = `
         prefixes: [Item]
         sufixes: [Item]
     }
+    input ItemInput {
+        type: String
+        description: String
+    }
+    type Mutation {
+        saveItem(item: ItemInput): Item
+    }
+
 `;
 
 const items= [
@@ -28,6 +36,16 @@ const resolvers = {
         },
         sufixes() {
             return items.filter(item => item.type === "sufix");
+        }
+    },
+    Mutation: {
+        saveItem(_, args) {
+            const item = args.item; //recebe os dados do front end
+            item.id = Math.floor(Math.random() * 1000);
+            items.push(item);
+            console.log("Passei aqui..."+" Ola");
+            console.log(items.length);
+            return item;
         }
     }
 };
