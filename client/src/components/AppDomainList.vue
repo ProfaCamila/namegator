@@ -4,11 +4,12 @@
             <div class="container">
                 <div class="row">
                     <div class="col-md">
-                        <AppItemList v-bind:items="prefixes" v-on:addItem="addPrefix" v-on:deleteItem="removePrefix">
+                        <AppItemList v-bind:items="items.prefix" v-on:addItem="addPrefix"
+                            v-on:deleteItem="removePrefix">
                         </AppItemList>
                     </div>
                     <div class="col-md">
-                        <AppItemList v-bind:items="sufixes" v-on:addItem="addSufix" v-on:deleteItem="removeSufix">
+                        <AppItemList v-bind:items="items.sufix" v-on:addItem="addSufix" v-on:deleteItem="removeSufix">
                         </AppItemList>
                     </div>
                 </div>
@@ -53,8 +54,10 @@ export default {
 	},
 	data: function () {
 		return {
-			prefixes: [],
-			sufixes: []
+			items: {
+				prefix: [],
+				sufix: []
+			}
 		};
 	},
 	methods: {
@@ -84,17 +87,74 @@ export default {
 				//outra opção
 				const query = response.data;
 				const newPrefix = query.data.newPrefix;
-				this.prefixes.push(newPrefix.description);
+				this.items.prefix.push(newPrefix);
 			});
 		},
 		addSufix(sufix) {
-			this.sufixes.push(sufix);
+			//this.sufixes.push(sufix);
+			axios({
+				url: "http://localhost:4000",
+				method: "post",
+				data: {
+					query: `
+                        mutation ($item: ItemInput) {
+                            newSufix: saveItem(item: $item) {
+                                id
+                                type
+                                description
+                            }
+                        }
+                    `,
+					variables: {
+						item: {
+							type: "sufix",
+							description: sufix
+						}
+					}
+				}
+			}).then(response => {
+				const query = response.data;
+				const newSufix = query.data.newSufix;
+				this.items.sufix.push(newSufix);
+			});
 		},
 		removeSufix(sufix) {
-			this.sufixes.splice(this.sufixes.indexOf(sufix), 1);
+			// this.sufixes.splice(this.items.sufix.indexOf(sufix), 1);
+			axios({
+				url: "http://localhost:4000",
+				method: "post",
+				data: {
+					query: `
+                        mutation ($id: Int) {
+                            deleted: deleteItem(id: $id)
+                        }
+                    `,
+					variables: {
+						id: sufix.id
+					}
+				}
+			}).then(() => {
+				this.getSufixes();
+			});
 		},
 		removePrefix(prefix) {
-			this.prefixes.splice(this.prefixes.indexOf(prefix), 1);
+			//this.prefixes.splice(this.prefixes.indexOf(prefix), 1);
+			axios({
+				url: "http://localhost:4000",
+				method: "post",
+				data: {
+					query: `
+                        mutation ($id: Int) {
+                            deleted: deleteItem(id: $id)
+                        }
+                    `,
+					variables: {
+						id: prefix.id
+					}
+				}
+			}).then(() => {
+				this.getPrefixes();
+			});
 		},
 		getPrefixes() {
 			axios({
@@ -113,7 +173,7 @@ export default {
 				}
 			}).then(response => {
 				const query = response.data;
-				this.prefixes = query.data.prefixes.map(prefix => prefix.description);
+				this.items.prefix = query.data.prefixes;
 				//this.sufixes = query.data.sufixes.map(sufix => sufix.description);
 			});
 		},
@@ -125,6 +185,8 @@ export default {
 					query: `
                 {
                     sufixes {
+                        id
+                        type
                         description
                     }
                 }
@@ -133,7 +195,7 @@ export default {
 			}).then(response => {
 				const query = response.data;
 				//this.prefixes = query.data.prefixes.map(prefix => prefix.description);
-				this.sufixes = query.data.sufixes.map(sufix => sufix.description);
+				this.items.sufix = query.data.sufixes;
 			});
 		}
 	},
@@ -141,9 +203,9 @@ export default {
 		domains() {
 			const domains = [];
 			console.log("Gerando domínios...");
-			for (const prefix of this.prefixes) {
-				for (const sufix of this.sufixes) {
-					const name = prefix + sufix;
+			for (const prefix of this.items.prefix) {
+				for (const sufix of this.items.sufix) {
+					const name = prefix.description + sufix.description;
 					const url = name.toLowerCase();
 					const checkout = "https://cart.hostgator.com.br/?pid=d&sld=" + url + "&tld=.com.br&domainCycle=2";
 					domains.push({

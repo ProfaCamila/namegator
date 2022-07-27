@@ -4,10 +4,10 @@
         <div class="card">
             <div class="card-body">
                 <ul class="list-group">
-                    <li class="list-group-item" v-for="item in items" v-bind:key="item">
+                    <li class="list-group-item" v-for="item in items" v-bind:key="item.id">
                         <div class="row">
                             <div class="col-md">
-                                {{ item }}
+                                {{ item.description }}
                             </div>
                             <div class="col-md text-right">
                                 <button class="btn btn-info" v-on:click="removeItem(item)"><span
